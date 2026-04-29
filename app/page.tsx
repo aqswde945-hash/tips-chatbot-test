@@ -148,7 +148,7 @@ export default function Home() {
             onChange={(e) => setInput(e.target.value)}
             placeholder="질문을 입력하세요..."
             disabled={loading}
-            className="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-50"
+            className="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-sm text-black focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-50"
           />
           <button
             type="submit"
