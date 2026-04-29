@@ -1,18 +1,13 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
+import siteConfig from '@/data/site-config.json';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
 }
-
-const EXAMPLE_QUESTIONS = [
-  '협약변경은 어떻게 신청하나요?',
-  '외주용역비 집행 기준이 무엇인가요?',
-  '사업비 증빙서류는 무엇이 필요한가요?',
-  '협약체결은 어떻게 하나요?',
-];
 
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -67,12 +62,48 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <div className="text-3xl">🤖</div>
             <div>
-              <h1 className="text-xl font-bold">팁스(TIPS) 창업사업화 AI 어시스턴트</h1>
-              <p className="text-blue-200 text-sm mt-0.5">관리기준 · 통합관리지침 · 시스템 가이드 기반 답변</p>
+              <h1 className="text-xl font-bold">{siteConfig.header.title}</h1>
+              <p className="text-blue-200 text-sm mt-0.5">{siteConfig.header.subtitle}</p>
             </div>
           </div>
         </div>
       </header>
+
+      {/* 공지사항 */}
+      {siteConfig.notices.length > 0 && (
+        <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-3">
+          <div className="max-w-3xl mx-auto space-y-1">
+            {siteConfig.notices.map((notice) => (
+              <div key={notice.id} className="flex items-start gap-2 text-sm text-yellow-800">
+                <span className="font-bold flex-shrink-0">📢</span>
+                <span>{notice.content}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 첨부파일 */}
+      {siteConfig.attachments.length > 0 && (
+        <div className="bg-white border-b border-gray-200 px-4 py-3">
+          <div className="max-w-3xl mx-auto">
+            <p className="text-xs text-gray-500 mb-2 font-medium">📎 참고 자료</p>
+            <div className="flex flex-wrap gap-2">
+              {siteConfig.attachments.map((file) => (
+                <a
+                  key={file.id}
+                  href={file.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-700 hover:bg-blue-100 transition-colors"
+                >
+                  📄 {file.name}
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 채팅 영역 */}
       <main className="flex-1 max-w-3xl w-full mx-auto px-4 py-6 flex flex-col gap-4">
@@ -87,7 +118,7 @@ export default function Home() {
               공식 문서 기반으로 정확하게 안내해드립니다.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-xl mx-auto">
-              {EXAMPLE_QUESTIONS.map((q) => (
+              {siteConfig.exampleQuestions.map((q) => (
                 <button
                   key={q}
                   onClick={() => sendMessage(q)}
@@ -158,9 +189,17 @@ export default function Home() {
             전송
           </button>
         </form>
-        <p className="text-center text-xs text-gray-400 mt-2">
-          공식 문서 기반 AI 답변 · 중요 사항은 담당자에게 재확인하세요
-        </p>
+        <div className="flex items-center justify-between mt-2">
+          <p className="text-xs text-gray-400">
+            공식 문서 기반 AI 답변 · 중요 사항은 담당자에게 재확인하세요
+          </p>
+          <Link
+            href="/guide"
+            className="flex-shrink-0 flex items-center gap-1 text-xs text-blue-600 font-medium hover:text-blue-800 transition-colors"
+          >
+            📋 증빙서류 가이드북
+          </Link>
+        </div>
       </div>
     </div>
   );
