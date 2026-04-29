@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import siteConfig from '@/data/site-config.json';
 
 interface Message {
@@ -188,9 +189,17 @@ export default function Home() {
             전송
           </button>
         </form>
-        <p className="text-center text-xs text-gray-400 mt-2">
-          공식 문서 기반 AI 답변 · 중요 사항은 담당자에게 재확인하세요
-        </p>
+        <div className="flex items-center justify-between mt-2">
+          <p className="text-xs text-gray-400">
+            공식 문서 기반 AI 답변 · 중요 사항은 담당자에게 재확인하세요
+          </p>
+          <Link
+            href="/guide"
+            className="flex-shrink-0 flex items-center gap-1 text-xs text-blue-600 font-medium hover:text-blue-800 transition-colors"
+          >
+            📋 증빙서류 가이드북
+          </Link>
+        </div>
       </div>
     </div>
   );
