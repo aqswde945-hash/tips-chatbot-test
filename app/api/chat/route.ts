@@ -8,18 +8,24 @@ const API_KEYS = [
 ].filter(Boolean);
 
 const SYSTEM_PROMPT = `당신은 팁스(TIPS) 창업사업화 및 해외마케팅 전담 AI 어시스턴트입니다.
-아래 제공된 공식 문서(관리기준, 통합관리지침, 시스템 가이드북)를 기반으로 창업기업의 질문에 정확하고 친절하게 답변하세요.
+아래 제공된 공식 문서(관리기준, 통합관리지침, 시스템 가이드북)를 기반으로 정확하고 친절하게 답변하세요.
 
-답변 규칙:
+## 사용자 전제
+- 이 챗봇을 사용하는 모든 사용자는 **팁스(TIPS) 사업에 선정된 창업기업 소속 임직원**입니다.
+- 운영사나 주관기관 담당자는 이 챗봇을 사용하지 않습니다.
+- 따라서 모든 답변은 창업기업의 입장과 권리·의무를 기준으로 작성하세요.
+- 주관기관·운영사 전용 규정(주관기관 인건비, 창업프로그램 운영비, 일반수용비 등)은 이 챗봇의 답변 범위에 포함되지 않습니다.
+
+## 답변 규칙
 1. 반드시 제공된 문서 내용을 근거로 답변하세요.
 2. 문서에 없는 내용은 "해당 내용은 문서에서 확인되지 않습니다. 담당자에게 문의해 주세요."라고 안내하세요.
 3. 모든 답변은 반드시 아래 형식으로 두 문서를 모두 명시하세요:
-   - [관리기준] 해당 조항/내용을 구체적으로 인용
-   - [통합관리지침] 해당 조항/내용을 구체적으로 인용
+   - **[관리기준]** 해당 조항/내용을 구체적으로 인용
+   - **[통합관리지침]** 해당 조항/내용을 구체적으로 인용
    - 두 문서의 내용이 상충하거나 추가 요건이 있는 경우, "※ 두 기준을 모두 충족해야 합니다. [상충 또는 추가 내용 설명]"을 반드시 안내하세요.
 4. 두 문서 중 한쪽에만 관련 내용이 있는 경우에도, 나머지 문서에 해당 내용이 없음을 명시하세요.
 5. 답변은 명확하고 이해하기 쉽게 작성하세요.
-6. 필요 시 번호 목록이나 단계별 안내를 활용하세요.
+6. 번호 목록, 단계별 안내, 표 등 마크다운 형식을 적극 활용하여 가독성을 높이세요.
 7. PMS, 창업사업통합정보관리시스템, 시스템 접속, 시스템 링크 관련 질문을 받으면 반드시 아래와 같이 안내하세요:
    "창업사업통합정보관리시스템은 아래 순서로 접속하실 수 있습니다.
    ① https://www.k-startup.go.kr/ 접속
@@ -31,7 +37,10 @@ const SYSTEM_PROMPT = `당신은 팁스(TIPS) 창업사업화 및 해외마케�
 === 참고 문서 ===
 ${KNOWLEDGE_BASE}`;
 
-async function tryWithKeys(messages: { role: string; content: string }[]) {
+async function streamWithKeys(
+  messages: { role: string; content: string }[],
+  onChunk: (text: string) => void
+) {
   const history = messages.slice(0, -1).map((m) => ({
     role: m.role === 'user' ? 'user' : 'model',
     parts: [{ text: m.content }],
@@ -46,14 +55,17 @@ async function tryWithKeys(messages: { role: string; content: string }[]) {
         config: { systemInstruction: SYSTEM_PROMPT },
         history,
       });
-      const result = await chat.sendMessage({ message: lastMessage });
-      return result.text;
+      const stream = await chat.sendMessageStream({ message: lastMessage });
+      for await (const chunk of stream) {
+        const text = chunk.text;
+        if (text) onChunk(text);
+      }
+      return;
     } catch (error: unknown) {
       const isQuotaError =
         error instanceof Error &&
         (error.message.includes('429') || error.message.includes('quota') || error.message.includes('RESOURCE_EXHAUSTED'));
 
-      // 마지막 키까지 실패하거나 쿼터 초과가 아닌 오류면 바로 throw
       if (!isQuotaError || i === API_KEYS.length - 1) throw error;
 
       console.log(`API 키 ${i + 1} 한도 초과 → 키 ${i + 2}로 전환`);
@@ -69,8 +81,27 @@ export async function POST(req: Request) {
       return Response.json({ error: '잘못된 요청입니다.' }, { status: 400 });
     }
 
-    const text = await tryWithKeys(messages);
-    return Response.json({ message: text });
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          await streamWithKeys(messages, (text) => {
+            controller.enqueue(encoder.encode(text));
+          });
+        } catch {
+          controller.enqueue(encoder.encode('\n\nAI 응답 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'));
+        } finally {
+          controller.close();
+        }
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'X-Content-Type-Options': 'nosniff',
+      },
+    });
   } catch (error) {
     console.error('Gemini API error:', error);
     return Response.json({ error: 'AI 응답 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' }, { status: 500 });

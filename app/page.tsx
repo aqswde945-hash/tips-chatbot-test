@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 import siteConfig from '@/data/site-config.json';
 
 interface Message {
@@ -27,17 +28,30 @@ export default function Home() {
     setInput('');
     setLoading(true);
 
+    setMessages([...newMessages, { role: 'assistant', content: '' }]);
+
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: newMessages }),
       });
-      const data = await res.json();
-      setMessages([...newMessages, {
-        role: 'assistant',
-        content: data.message || data.error || '오류가 발생했습니다.',
-      }]);
+
+      if (!res.ok || !res.body) {
+        setMessages([...newMessages, { role: 'assistant', content: '오류가 발생했습니다.' }]);
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let accumulated = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        accumulated += decoder.decode(value, { stream: true });
+        setMessages([...newMessages, { role: 'assistant', content: accumulated }]);
+      }
     } catch {
       setMessages([...newMessages, {
         role: 'assistant',
@@ -142,32 +156,52 @@ export default function Home() {
               </div>
             )}
             <div
-              className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
+              className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
                 msg.role === 'user'
-                  ? 'bg-blue-600 text-white rounded-tr-sm'
+                  ? 'bg-blue-600 text-white rounded-tr-sm whitespace-pre-wrap'
                   : 'bg-white text-gray-800 border border-gray-200 rounded-tl-sm shadow-sm'
               }`}
             >
-              {msg.content}
+              {msg.role === 'assistant' ? (
+                msg.content ? (
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                      ul: ({ children }) => <ul className="list-disc pl-4 mb-2 space-y-1">{children}</ul>,
+                      ol: ({ children }) => <ol className="list-decimal pl-4 mb-2 space-y-1">{children}</ol>,
+                      li: ({ children }) => <li>{children}</li>,
+                      strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                      h1: ({ children }) => <h1 className="text-base font-bold mb-2">{children}</h1>,
+                      h2: ({ children }) => <h2 className="text-sm font-bold mb-1 mt-3">{children}</h2>,
+                      h3: ({ children }) => <h3 className="text-sm font-semibold mb-1 mt-2">{children}</h3>,
+                      hr: () => <hr className="my-3 border-gray-200" />,
+                      blockquote: ({ children }) => (
+                        <blockquote className="border-l-2 border-blue-300 pl-3 text-gray-600 my-2">{children}</blockquote>
+                      ),
+                      table: ({ children }) => (
+                        <div className="overflow-x-auto my-2">
+                          <table className="text-xs border-collapse border border-gray-200 w-full">{children}</table>
+                        </div>
+                      ),
+                      th: ({ children }) => <th className="border border-gray-200 px-2 py-1 bg-gray-50 font-semibold">{children}</th>,
+                      td: ({ children }) => <td className="border border-gray-200 px-2 py-1">{children}</td>,
+                    }}
+                  >
+                    {msg.content}
+                  </ReactMarkdown>
+                ) : (
+                  <div className="flex gap-1 items-center py-1">
+                    <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                )
+              ) : (
+                msg.content
+              )}
             </div>
           </div>
         ))}
-
-        {/* 로딩 */}
-        {loading && (
-          <div className="flex justify-start">
-            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm mr-2 flex-shrink-0">
-              AI
-            </div>
-            <div className="bg-white border border-gray-200 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
-              <div className="flex gap-1 items-center">
-                <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-              </div>
-            </div>
-          </div>
-        )}
 
         <div ref={messagesEndRef} />
       </main>
