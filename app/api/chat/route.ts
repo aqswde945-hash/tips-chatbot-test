@@ -37,10 +37,7 @@ const SYSTEM_PROMPT = `당신은 팁스(TIPS) 창업사업화 및 해외마케�
 === 참고 문서 ===
 ${KNOWLEDGE_BASE}`;
 
-async function streamWithKeys(
-  messages: { role: string; content: string }[],
-  onChunk: (text: string) => void
-) {
+async function tryWithKeys(messages: { role: string; content: string }[]) {
   const history = messages.slice(0, -1).map((m) => ({
     role: m.role === 'user' ? 'user' : 'model',
     parts: [{ text: m.content }],
@@ -55,12 +52,8 @@ async function streamWithKeys(
         config: { systemInstruction: SYSTEM_PROMPT },
         history,
       });
-      const stream = await chat.sendMessageStream({ message: lastMessage });
-      for await (const chunk of stream) {
-        const text = chunk.text;
-        if (text) onChunk(text);
-      }
-      return;
+      const result = await chat.sendMessage({ message: lastMessage });
+      return result.text;
     } catch (error: unknown) {
       const isQuotaError =
         error instanceof Error &&
@@ -81,27 +74,8 @@ export async function POST(req: Request) {
       return Response.json({ error: '잘못된 요청입니다.' }, { status: 400 });
     }
 
-    const encoder = new TextEncoder();
-    const stream = new ReadableStream({
-      async start(controller) {
-        try {
-          await streamWithKeys(messages, (text) => {
-            controller.enqueue(encoder.encode(text));
-          });
-        } catch {
-          controller.enqueue(encoder.encode('\n\nAI 응답 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'));
-        } finally {
-          controller.close();
-        }
-      },
-    });
-
-    return new Response(stream, {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'X-Content-Type-Options': 'nosniff',
-      },
-    });
+    const text = await tryWithKeys(messages);
+    return Response.json({ message: text });
   } catch (error) {
     console.error('Gemini API error:', error);
     return Response.json({ error: 'AI 응답 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' }, { status: 500 });
