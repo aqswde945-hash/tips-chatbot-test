@@ -13,7 +13,18 @@
       "content": "중요한 내용은 tipsvc@kvca.or.kr 로 담당자의 재검토를 받으시기 바랍니다."
     }
   ],
-  "attachments": [],
+  "attachments": [
+    {
+      "id": "1777468807688",
+      "name": "세부관리기준",
+      "url": "https://drive.google.com/file/d/1wVy-Ezn-ownb_Y5kO4HhWGQyFeRg_Z8S/view?usp=drivesdk"
+    },
+    {
+      "id": "1777468833652",
+      "name": "통합관리지침",
+      "url": "https://drive.google.com/file/d/1ujA7Mx6bjM99qQGm1sYslqC3c8Ir4ldW/view?usp=drivesdk"
+    }
+  ],
   "exampleQuestions": [
     "협약변경은 어떻게 신청하나요?",
     "외주용역비 집행 기준이 무엇인가요?",
