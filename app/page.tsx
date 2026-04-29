@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import Link from 'next/link';
 import siteConfig from '@/data/site-config.json';
 
 interface Message {
@@ -73,10 +72,13 @@ export default function Home() {
       {siteConfig.notices.length > 0 && (
         <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-3">
           <div className="max-w-3xl mx-auto space-y-1">
-            {(siteConfig.notices as Array<{ id: string; content: string }>).map((notice) => (
+            {(siteConfig.notices as Array<{ id: string; title: string; content: string }>).map((notice) => (
               <div key={notice.id} className="flex items-start gap-2 text-sm text-yellow-800">
                 <span className="font-bold flex-shrink-0">📢</span>
-                <span>{notice.content}</span>
+                <div>
+                  <span className="font-semibold">{notice.title}</span>
+                  <span className="text-yellow-700 ml-2">{notice.content}</span>
+                </div>
               </div>
             ))}
           </div>
@@ -189,17 +191,9 @@ export default function Home() {
             전송
           </button>
         </form>
-        <div className="flex items-center justify-between mt-2">
-          <p className="text-xs text-gray-400">
-            공식 문서 기반 AI 답변 · 중요 사항은 담당자에게 재확인하세요
-          </p>
-          <Link
-            href="/guide"
-            className="flex-shrink-0 flex items-center gap-1 text-xs text-blue-600 font-medium hover:text-blue-800 transition-colors"
-          >
-            📋 증빙서류 가이드북
-          </Link>
-        </div>
+        <p className="text-xs text-gray-400 mt-2">
+          공식 문서 기반 AI 답변 · 중요 사항은 담당자에게 재확인하세요
+        </p>
       </div>
     </div>
   );

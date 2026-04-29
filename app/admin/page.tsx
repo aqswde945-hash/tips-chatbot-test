@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 
 interface Notice {
   id: string;
+  title: string;
   content: string;
 }
 
@@ -35,9 +36,8 @@ export default function AdminPage() {
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
 
-  // 공지 입력
-  const [newNotice, setNewNotice] = useState('');
-  // 첨부파일 입력
+  const [newNoticeTitle, setNewNoticeTitle] = useState('');
+  const [newNoticeContent, setNewNoticeContent] = useState('');
   const [newFileName, setNewFileName] = useState('');
   const [newFileUrl, setNewFileUrl] = useState('');
 
@@ -52,7 +52,6 @@ export default function AdminPage() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (!password.trim()) return;
-    // 비밀번호 확인은 저장 시 서버에서 하지만, 먼저 config 로드
     setAuthed(true);
     setAuthError('');
   };
@@ -85,12 +84,13 @@ export default function AdminPage() {
   };
 
   const addNotice = () => {
-    if (!newNotice.trim() || !config) return;
+    if (!newNoticeTitle.trim() || !newNoticeContent.trim() || !config) return;
     setConfig({
       ...config,
-      notices: [...config.notices, { id: Date.now().toString(), content: newNotice.trim() }],
+      notices: [...config.notices, { id: Date.now().toString(), title: newNoticeTitle.trim(), content: newNoticeContent.trim() }],
     });
-    setNewNotice('');
+    setNewNoticeTitle('');
+    setNewNoticeContent('');
   };
 
   const removeNotice = (id: string) => {
@@ -134,7 +134,6 @@ export default function AdminPage() {
     setConfig({ ...config, exampleQuestions: [...config.exampleQuestions, ''] });
   };
 
-  // 로그인 화면
   if (!authed) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -162,7 +161,6 @@ export default function AdminPage() {
     );
   }
 
-  // 로딩
   if (!config) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -180,7 +178,6 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* 상단 바 */}
       <header className="bg-white border-b border-gray-200 px-4 py-4 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <h1 className="text-base font-bold text-gray-800">관리자 페이지</h1>
@@ -202,7 +199,6 @@ export default function AdminPage() {
       </header>
 
       <div className="max-w-2xl mx-auto px-4 py-6">
-        {/* 탭 */}
         <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-xl overflow-x-auto">
           {TABS.map((t) => (
             <button
@@ -219,7 +215,6 @@ export default function AdminPage() {
           ))}
         </div>
 
-        {/* 헤더 탭 */}
         {tab === 'header' && (
           <div className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
             <h2 className="font-semibold text-gray-700">헤더 문구 수정</h2>
@@ -242,22 +237,27 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* 공지사항 탭 */}
         {tab === 'notices' && (
           <div className="space-y-4">
             <div className="bg-white rounded-2xl shadow-sm p-6">
               <h2 className="font-semibold text-gray-700 mb-4">공지사항 추가</h2>
-              <div className="flex gap-2">
+              <div className="space-y-3">
                 <input
-                  value={newNotice}
-                  onChange={(e) => setNewNotice(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && addNotice()}
+                  value={newNoticeTitle}
+                  onChange={(e) => setNewNoticeTitle(e.target.value)}
+                  placeholder="공지 제목 (예: 3차 사업비 신청 안내)"
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm text-black focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                />
+                <textarea
+                  value={newNoticeContent}
+                  onChange={(e) => setNewNoticeContent(e.target.value)}
                   placeholder="공지 내용 입력..."
-                  className="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-sm text-black focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  rows={3}
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm text-black focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 resize-none"
                 />
                 <button
                   onClick={addNotice}
-                  className="bg-blue-600 text-white px-4 py-3 rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
+                  className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
                 >
                   추가
                 </button>
@@ -271,7 +271,10 @@ export default function AdminPage() {
                 {config.notices.map((notice) => (
                   <div key={notice.id} className="bg-white rounded-2xl shadow-sm p-4 flex items-start gap-3">
                     <span className="text-yellow-500 mt-0.5">📢</span>
-                    <p className="flex-1 text-sm text-gray-700">{notice.content}</p>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-gray-800">{notice.title}</p>
+                      <p className="text-sm text-gray-600 mt-0.5">{notice.content}</p>
+                    </div>
                     <button
                       onClick={() => removeNotice(notice.id)}
                       className="text-gray-300 hover:text-red-400 transition-colors text-lg leading-none"
@@ -285,7 +288,6 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* 첨부파일 탭 */}
         {tab === 'attachments' && (
           <div className="space-y-4">
             <div className="bg-white rounded-2xl shadow-sm p-6">
@@ -336,7 +338,6 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* 예시 질문 탭 */}
         {tab === 'questions' && (
           <div className="bg-white rounded-2xl shadow-sm p-6 space-y-3">
             <h2 className="font-semibold text-gray-700 mb-4">예시 질문 수정</h2>
