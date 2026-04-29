@@ -73,7 +73,7 @@ export default function Home() {
       {siteConfig.notices.length > 0 && (
         <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-3">
           <div className="max-w-3xl mx-auto space-y-1">
-            {siteConfig.notices.map((notice) => (
+            {(siteConfig.notices as Array<{ id: string; content: string }>).map((notice) => (
               <div key={notice.id} className="flex items-start gap-2 text-sm text-yellow-800">
                 <span className="font-bold flex-shrink-0">📢</span>
                 <span>{notice.content}</span>
@@ -89,7 +89,7 @@ export default function Home() {
           <div className="max-w-3xl mx-auto">
             <p className="text-xs text-gray-500 mb-2 font-medium">📎 참고 자료</p>
             <div className="flex flex-wrap gap-2">
-              {siteConfig.attachments.map((file) => (
+              {(siteConfig.attachments as Array<{ id: string; name: string; url: string }>).map((file) => (
                 <a
                   key={file.id}
                   href={file.url}
