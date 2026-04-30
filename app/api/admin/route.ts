@@ -1,16 +1,65 @@
 import { NextRequest } from 'next/server';
-import currentConfig from '@/data/site-config.json';
 
 const REPO = 'aqswde945-hash/tips-chatbot';
-const FILE_PATH = 'data/site-config.json';
 const BRANCH = 'main';
 
+function githubHeaders(token: string) {
+  return {
+    Authorization: `token ${token}`,
+    Accept: 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json',
+  };
+}
+
+async function getFileFromGitHub(token: string, filePath: string) {
+  const res = await fetch(
+    `https://api.github.com/repos/${REPO}/contents/${filePath}?ref=${BRANCH}`,
+    { headers: githubHeaders(token), cache: 'no-store' }
+  );
+  if (!res.ok) throw new Error(`Failed to fetch ${filePath}`);
+  const data = await res.json();
+  const content = JSON.parse(Buffer.from(data.content, 'base64').toString('utf-8'));
+  return { content, sha: data.sha };
+}
+
+async function updateFileOnGitHub(token: string, filePath: string, content: unknown, sha: string, message: string) {
+  const encoded = Buffer.from(JSON.stringify(content, null, 2) + '\n').toString('base64');
+  const res = await fetch(
+    `https://api.github.com/repos/${REPO}/contents/${filePath}`,
+    {
+      method: 'PUT',
+      headers: githubHeaders(token),
+      body: JSON.stringify({ message, content: encoded, sha, branch: BRANCH }),
+    }
+  );
+  if (!res.ok) {
+    const err = await res.json();
+    console.error('GitHub update error:', err);
+    throw new Error('GitHub 저장 실패');
+  }
+}
+
 export async function GET() {
-  return Response.json(currentConfig);
+  const token = process.env.GITHUB_TOKEN;
+  if (!token) {
+    const fallback = (await import('@/data/site-config.json')).default;
+    return Response.json({ config: fallback, faq: [] });
+  }
+  try {
+    const [{ content: config }, { content: faq }] = await Promise.all([
+      getFileFromGitHub(token, 'data/site-config.json'),
+      getFileFromGitHub(token, 'data/faq.json'),
+    ]);
+    return Response.json({ config, faq });
+  } catch {
+    const fallback = (await import('@/data/site-config.json')).default;
+    return Response.json({ config: fallback, faq: [] });
+  }
 }
 
 export async function POST(req: NextRequest) {
-  const { password, config } = await req.json();
+  const body = await req.json();
+  const { password, config, faq } = body;
 
   if (!password || password !== process.env.ADMIN_PASSWORD) {
     return Response.json({ error: '비밀번호가 틀렸습니다.' }, { status: 401 });
@@ -21,46 +70,23 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: 'GITHUB_TOKEN 환경변수가 설정되지 않았습니다.' }, { status: 500 });
   }
 
-  const headers = {
-    Authorization: `token ${token}`,
-    Accept: 'application/vnd.github.v3+json',
-    'Content-Type': 'application/json',
-  };
+  try {
+    const updates: Promise<void>[] = [];
 
-  // 현재 파일 SHA 조회
-  const getRes = await fetch(
-    `https://api.github.com/repos/${REPO}/contents/${FILE_PATH}?ref=${BRANCH}`,
-    { headers }
-  );
-
-  if (!getRes.ok) {
-    return Response.json({ error: 'GitHub에서 파일을 읽을 수 없습니다.' }, { status: 500 });
-  }
-
-  const fileData = await getRes.json();
-
-  // 파일 업데이트
-  const content = Buffer.from(JSON.stringify(config, null, 2) + '\n').toString('base64');
-
-  const updateRes = await fetch(
-    `https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`,
-    {
-      method: 'PUT',
-      headers,
-      body: JSON.stringify({
-        message: 'feat: update site config via admin page',
-        content,
-        sha: fileData.sha,
-        branch: BRANCH,
-      }),
+    if (config !== undefined) {
+      const { sha } = await getFileFromGitHub(token, 'data/site-config.json');
+      updates.push(updateFileOnGitHub(token, 'data/site-config.json', config, sha, 'feat: update site config via admin page'));
     }
-  );
 
-  if (!updateRes.ok) {
-    const err = await updateRes.json();
-    console.error('GitHub update error:', err);
+    if (faq !== undefined) {
+      const { sha } = await getFileFromGitHub(token, 'data/faq.json');
+      updates.push(updateFileOnGitHub(token, 'data/faq.json', faq, sha, 'feat: update FAQ via admin page'));
+    }
+
+    await Promise.all(updates);
+    return Response.json({ success: true });
+  } catch (error) {
+    console.error('Admin save error:', error);
     return Response.json({ error: 'GitHub 저장에 실패했습니다.' }, { status: 500 });
   }
-
-  return Response.json({ success: true });
 }
