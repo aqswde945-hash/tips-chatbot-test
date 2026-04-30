@@ -2,18 +2,55 @@
 
 import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
-import siteConfig from '@/data/site-config.json';
+import Link from 'next/link';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
 }
 
+interface Notice {
+  id: string;
+  title: string;
+  content: string;
+}
+
+interface Attachment {
+  id: string;
+  name: string;
+  url: string;
+}
+
+interface SiteConfig {
+  header: { title: string; subtitle: string };
+  notices: Notice[];
+  attachments: Attachment[];
+  exampleQuestions: string[];
+}
+
+interface FaqItem {
+  id: string;
+  question: string;
+  answer: string;
+}
+
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
+  const [faq, setFaq] = useState<FaqItem[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    fetch('/api/config')
+      .then((r) => r.json())
+      .then(({ config, faq }) => {
+        setSiteConfig(config);
+        setFaq(faq ?? []);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -54,26 +91,30 @@ export default function Home() {
     sendMessage(input);
   };
 
+  const title = siteConfig?.header.title ?? '팁스(TIPS) 창업사업화 AI 어시스턴트';
+  const subtitle = siteConfig?.header.subtitle ?? '관리기준 · 통합관리지침 · 시스템 가이드 기반 답변';
+  const notices = siteConfig?.notices ?? [];
+  const attachments = siteConfig?.attachments ?? [];
+  const exampleQuestions = siteConfig?.exampleQuestions ?? [];
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex flex-col">
-      {/* 헤더 */}
       <header className="bg-blue-700 text-white py-5 px-4 shadow-md">
         <div className="max-w-3xl mx-auto">
           <div className="flex items-center gap-3">
             <div className="text-3xl">🤖</div>
             <div>
-              <h1 className="text-xl font-bold">{siteConfig.header.title}</h1>
-              <p className="text-blue-200 text-sm mt-0.5">{siteConfig.header.subtitle}</p>
+              <h1 className="text-xl font-bold">{title}</h1>
+              <p className="text-blue-200 text-sm mt-0.5">{subtitle}</p>
             </div>
           </div>
         </div>
       </header>
 
-      {/* 공지사항 */}
-      {siteConfig.notices.length > 0 && (
+      {notices.length > 0 && (
         <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-3">
           <div className="max-w-3xl mx-auto space-y-1">
-            {(siteConfig.notices as Array<{ id: string; title: string; content: string }>).map((notice) => (
+            {notices.map((notice) => (
               <div key={notice.id} className="flex items-start gap-2 text-sm text-yellow-800">
                 <span className="font-bold flex-shrink-0">📢</span>
                 <div>
@@ -86,13 +127,12 @@ export default function Home() {
         </div>
       )}
 
-      {/* 첨부파일 */}
-      {siteConfig.attachments.length > 0 && (
+      {attachments.length > 0 && (
         <div className="bg-white border-b border-gray-200 px-4 py-3">
           <div className="max-w-3xl mx-auto">
             <p className="text-xs text-gray-500 mb-2 font-medium">📎 참고 자료</p>
             <div className="flex flex-wrap gap-2">
-              {(siteConfig.attachments as Array<{ id: string; name: string; url: string }>).map((file) => (
+              {attachments.map((file) => (
                 <a
                   key={file.id}
                   href={file.url}
@@ -108,10 +148,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* 채팅 영역 */}
       <main className="flex-1 max-w-3xl w-full mx-auto px-4 py-6 flex flex-col gap-4">
-
-        {/* 초기 안내 */}
         {messages.length === 0 && (
           <div className="text-center py-8">
             <div className="text-5xl mb-4">📋</div>
@@ -120,8 +157,18 @@ export default function Home() {
               팁스 창업사업화·해외마케팅 사업비 집행, 협약변경, 시스템 이용 등<br />
               공식 문서 기반으로 정확하게 안내해드립니다.
             </p>
+            {faq.length > 0 && (
+              <div className="mb-6">
+                <Link
+                  href="/faq"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-blue-200 rounded-xl text-sm text-blue-700 hover:bg-blue-50 hover:border-blue-400 transition-colors shadow-sm"
+                >
+                  💡 자주 묻는 질문(FAQ) 보기
+                </Link>
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-xl mx-auto">
-              {siteConfig.exampleQuestions.map((q) => (
+              {exampleQuestions.map((q) => (
                 <button
                   key={q}
                   onClick={() => sendMessage(q)}
@@ -134,7 +181,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* 메시지 목록 */}
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             {msg.role === 'assistant' && (
@@ -182,7 +228,6 @@ export default function Home() {
           </div>
         ))}
 
-        {/* 로딩 */}
         {loading && (
           <div className="flex justify-start">
             <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm mr-2 flex-shrink-0">
@@ -201,7 +246,6 @@ export default function Home() {
         <div ref={messagesEndRef} />
       </main>
 
-      {/* 입력창 */}
       <div className="sticky bottom-0 bg-white border-t border-gray-200 px-4 py-4 shadow-lg">
         <form onSubmit={handleSubmit} className="max-w-3xl mx-auto flex gap-2">
           <input
