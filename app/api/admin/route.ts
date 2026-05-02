@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 
-const REPO = 'aqswde945-hash/tips-chatbot';
+const REPO = 'aqswde945-hash/tips-chatbot-test';
 const BRANCH = 'main';
 
 function githubHeaders(token: string) {

@@ -1,4 +1,4 @@
-const REPO = 'aqswde945-hash/tips-chatbot';
+const REPO = 'aqswde945-hash/tips-chatbot-test';
 const BRANCH = 'main';
 
 async function fetchGitHubJson(filePath: string) {

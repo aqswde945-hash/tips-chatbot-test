@@ -1,11 +1,8 @@
-import { GoogleGenAI } from '@google/genai';
 import { KNOWLEDGE_BASE } from '@/lib/knowledge';
 
-const API_KEYS = [
-  process.env.GEMINI_API_KEY!,
-  process.env.GEMINI_API_KEY_2!,
-  process.env.GEMINI_API_KEY_3!,
-].filter(Boolean);
+const ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID!;
+const API_TOKEN = process.env.CLOUDFLARE_API_TOKEN!;
+const MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
 
 const SYSTEM_PROMPT = `당신은 팁스(TIPS) 창업사업화 및 해외마케팅 전담 AI 어시스턴트입니다.
 아래 제공된 공식 문서(관리기준, 통합관리지침, 시스템 가이드북)를 기반으로 정확하고 친절하게 답변하세요.
@@ -37,35 +34,6 @@ const SYSTEM_PROMPT = `당신은 팁스(TIPS) 창업사업화 및 해외마케�
 === 참고 문서 ===
 ${KNOWLEDGE_BASE}`;
 
-async function tryWithKeys(messages: { role: string; content: string }[]) {
-  const history = messages.slice(0, -1).map((m) => ({
-    role: m.role === 'user' ? 'user' : 'model',
-    parts: [{ text: m.content }],
-  }));
-  const lastMessage = messages[messages.length - 1].content;
-
-  for (let i = 0; i < API_KEYS.length; i++) {
-    try {
-      const ai = new GoogleGenAI({ apiKey: API_KEYS[i] });
-      const chat = ai.chats.create({
-        model: 'gemini-flash-latest',
-        config: { systemInstruction: SYSTEM_PROMPT },
-        history,
-      });
-      const result = await chat.sendMessage({ message: lastMessage });
-      return result.text;
-    } catch (error: unknown) {
-      const isQuotaError =
-        error instanceof Error &&
-        (error.message.includes('429') || error.message.includes('quota') || error.message.includes('RESOURCE_EXHAUSTED'));
-
-      if (!isQuotaError || i === API_KEYS.length - 1) throw error;
-
-      console.log(`API 키 ${i + 1} 한도 초과 → 키 ${i + 2}로 전환`);
-    }
-  }
-}
-
 export async function POST(req: Request) {
   try {
     const { messages } = await req.json();
@@ -74,10 +42,36 @@ export async function POST(req: Request) {
       return Response.json({ error: '잘못된 요청입니다.' }, { status: 400 });
     }
 
-    const text = await tryWithKeys(messages);
-    return Response.json({ message: text });
+    const cfMessages = [
+      { role: 'system', content: SYSTEM_PROMPT },
+      ...messages.map((m: { role: string; content: string }) => ({
+        role: m.role === 'user' ? 'user' : 'assistant',
+        content: m.content,
+      })),
+    ];
+
+    const res = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/ai/run/${MODEL}`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${API_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ messages: cfMessages }),
+      }
+    );
+
+    if (!res.ok) {
+      const err = await res.json();
+      console.error('Cloudflare AI error:', err);
+      return Response.json({ error: 'AI 응답 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' }, { status: 500 });
+    }
+
+    const data = await res.json();
+    return Response.json({ message: data.result?.response ?? '' });
   } catch (error) {
-    console.error('Gemini API error:', error);
+    console.error('Cloudflare AI error:', error);
     return Response.json({ error: 'AI 응답 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' }, { status: 500 });
   }
 }
