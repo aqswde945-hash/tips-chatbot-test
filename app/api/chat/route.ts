@@ -1,8 +1,6 @@
 import { KNOWLEDGE_BASE } from '@/lib/knowledge';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 
-
-const ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID!;
-const API_TOKEN = process.env.CLOUDFLARE_API_TOKEN!;
 const MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
 
 const SYSTEM_PROMPT = `당신은 팁스(TIPS) 창업사업화 및 해외마케팅 전담 AI 어시스턴트입니다.
@@ -49,28 +47,13 @@ export async function POST(req: Request) {
       })),
     ];
 
-    const res = await fetch(
-      `https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/ai/run/${MODEL}`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${API_TOKEN}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ messages: cfMessages }),
-      }
-    );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { env } = getCloudflareContext() as { env: any };
+    const result = await env.AI.run(MODEL, { messages: cfMessages }) as { response?: string };
 
-    if (!res.ok) {
-      const err = await res.json();
-      console.error('Cloudflare AI error:', err);
-      return Response.json({ error: 'AI 응답 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' }, { status: 500 });
-    }
-
-    const data = await res.json();
-    return Response.json({ message: data.result?.response ?? '' });
+    return Response.json({ message: result.response ?? '' });
   } catch (error) {
-    console.error('Cloudflare AI error:', error);
+    console.error('AI error:', error);
     return Response.json({ error: 'AI 응답 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' }, { status: 500 });
   }
 }
