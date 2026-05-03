@@ -12,7 +12,7 @@
     "preview": "npm run pages:build && wrangler pages dev"
   },
   "dependencies": {
-    "next": "16.2.4",
+    "next": "^15.5.2",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-markdown": "^10.1.0"
@@ -24,7 +24,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.4",
+    "eslint-config-next": "^15.5.2",
     "tailwindcss": "^4",
     "typescript": "^5",
     "wrangler": "^4.87.0"
