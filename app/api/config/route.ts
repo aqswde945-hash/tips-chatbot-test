@@ -1,4 +1,3 @@
-export const runtime = 'edge';
 
 const REPO = 'aqswde945-hash/tips-chatbot-test';
 const BRANCH = 'main';
