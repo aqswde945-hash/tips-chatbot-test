@@ -68,7 +68,7 @@ export async function POST(req: Request) {
       })),
     ];
 
-    const result = await env.AI.run(MODEL, { messages: cfMessages }) as { response?: string };
+    const result = await env.AI.run(MODEL, { messages: cfMessages, max_tokens: 2048 }) as { response?: string };
     const message = result.response ?? '';
 
     // 응답 캐시 저장 (24시간)
