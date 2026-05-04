@@ -31,8 +31,16 @@ export async function POST(req: Request) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { env } = await getCloudflareContext({ async: true }) as { env: any };
 
-    // 최신 사용자 질문으로 관련 문서 검색
     const latestUserMsg = [...messages].reverse().find((m: { role: string }) => m.role === 'user')?.content ?? '';
+    const cacheKey = latestUserMsg.trim().toLowerCase().slice(0, 512);
+
+    // KV 캐시 확인
+    const cached = await env.CHAT_CACHE.get(cacheKey);
+    if (cached) {
+      return Response.json({ message: cached });
+    }
+
+    // 관련 문서 검색
     const queryEmbedding = await env.AI.run(EMBED_MODEL, { text: [latestUserMsg] });
 
     const searchResults = await env.VECTORIZE.query(queryEmbedding.data[0], {
@@ -58,7 +66,12 @@ export async function POST(req: Request) {
     ];
 
     const result = await env.AI.run(MODEL, { messages: cfMessages }) as { response?: string };
-    return Response.json({ message: result.response ?? '' });
+    const message = result.response ?? '';
+
+    // 응답 캐시 저장 (24시간)
+    await env.CHAT_CACHE.put(cacheKey, message, { expirationTtl: 86400 });
+
+    return Response.json({ message });
   } catch (error) {
     console.error('AI error:', error);
     return Response.json({ error: 'AI 응답 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' }, { status: 500 });
