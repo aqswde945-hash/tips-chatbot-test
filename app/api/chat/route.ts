@@ -48,7 +48,7 @@ export async function POST(req: Request) {
     ];
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { env } = getCloudflareContext() as { env: any };
+    const { env } = await getCloudflareContext({ async: true }) as { env: any };
     const result = await env.AI.run(MODEL, { messages: cfMessages }) as { response?: string };
 
     return Response.json({ message: result.response ?? '' });
