@@ -3,19 +3,23 @@ export interface Chunk {
   text: string;
 }
 
-export function chunkText(text: string, chunkSize = 1500, overlap = 200): Chunk[] {
+export function chunkText(text: string, maxSize = 1000): Chunk[] {
   const chunks: Chunk[] = [];
-  let start = 0;
   let index = 0;
+  let current = '';
 
-  while (start < text.length) {
-    const end = Math.min(start + chunkSize, text.length);
-    const chunk = text.slice(start, end).trim();
-    if (chunk.length > 50) {
-      chunks.push({ id: `chunk-${index++}`, text: chunk });
+  const lines = text.split('\n').map((l) => l.trim()).filter((l) => l.length > 10);
+
+  for (const line of lines) {
+    if (current.length + line.length > maxSize && current.length > 0) {
+      chunks.push({ id: `chunk-${index++}`, text: current.trim() });
+      current = '';
     }
-    if (end === text.length) break;
-    start += chunkSize - overlap;
+    current += (current ? ' ' : '') + line;
+  }
+
+  if (current.trim().length > 10) {
+    chunks.push({ id: `chunk-${index++}`, text: current.trim() });
   }
 
   return chunks;

@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     const queryEmbedding = await env.AI.run(EMBED_MODEL, { text: [latestUserMsg] });
 
     const searchResults = await env.VECTORIZE.query(queryEmbedding.data[0], {
-      topK: 6,
+      topK: 10,
       returnMetadata: 'all',
     });
 
