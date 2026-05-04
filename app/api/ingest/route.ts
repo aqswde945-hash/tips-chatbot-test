@@ -22,13 +22,11 @@ export async function POST(req: Request) {
     for (let i = 0; i < chunks.length; i += batchSize) {
       const batch = chunks.slice(i, i + batchSize);
 
-      const embeddings = await Promise.all(
-        batch.map((chunk) => env.AI.run(EMBED_MODEL, { text: [chunk.text] }))
-      );
+      const result = await env.AI.run(EMBED_MODEL, { text: batch.map((c) => c.text) });
 
       const vectors = batch.map((chunk, j) => ({
         id: chunk.id,
-        values: embeddings[j].data[0],
+        values: result.data[j],
         metadata: { text: chunk.text },
       }));
 
