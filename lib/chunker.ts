@@ -3,7 +3,7 @@ export interface Chunk {
   text: string;
 }
 
-export function chunkText(text: string, maxSize = 1000): Chunk[] {
+export function chunkText(text: string, maxSize = 2000): Chunk[] {
   const chunks: Chunk[] = [];
   let index = 0;
   let current = '';

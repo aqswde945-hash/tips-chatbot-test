@@ -30,11 +30,11 @@ export async function POST(req: Request) {
     const chunks = chunkText(KNOWLEDGE_BASE);
 
     let inserted = 0;
-    const batchSize = 10;
+    const embedBatchSize = 20;
+    const upsertBatchSize = 5;
 
-    for (let i = 0; i < chunks.length; i += batchSize) {
-      const batch = chunks.slice(i, i + batchSize);
-
+    for (let i = 0; i < chunks.length; i += embedBatchSize) {
+      const batch = chunks.slice(i, i + embedBatchSize);
       const result = await env.AI.run(EMBED_MODEL, { text: batch.map((c) => c.text) });
 
       const vectors = batch.map((chunk, j) => ({
@@ -43,7 +43,9 @@ export async function POST(req: Request) {
         metadata: { text: chunk.text },
       }));
 
-      await upstashUpsert(vectors);
+      for (let j = 0; j < vectors.length; j += upsertBatchSize) {
+        await upstashUpsert(vectors.slice(j, j + upsertBatchSize));
+      }
       inserted += batch.length;
     }
 
