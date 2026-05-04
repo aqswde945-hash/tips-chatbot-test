@@ -66,6 +66,10 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: '비밀번호가 틀렸습니다.' }, { status: 401 });
   }
 
+  if (config === undefined && faq === undefined) {
+    return Response.json({ success: true });
+  }
+
   const token = process.env.GITHUB_TOKEN;
   if (!token) {
     return Response.json({ error: 'GITHUB_TOKEN 환경변수가 설정되지 않았습니다.' }, { status: 500 });

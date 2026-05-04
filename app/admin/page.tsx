@@ -63,11 +63,24 @@ export default function AdminPage() {
     }
   }, [authed]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!password.trim()) return;
-    setAuthed(true);
-    setAuthError('');
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+      if (res.status === 401) {
+        setAuthError('비밀번호가 틀렸습니다.');
+      } else {
+        setAuthed(true);
+        setAuthError('');
+      }
+    } catch {
+      setAuthError('네트워크 오류가 발생했습니다.');
+    }
   };
 
   const handleIngest = async () => {
