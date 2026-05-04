@@ -17,7 +17,10 @@ async function getFileFromGitHub(token: string, filePath: string) {
     `https://api.github.com/repos/${REPO}/contents/${filePath}?ref=${BRANCH}`,
     { headers: githubHeaders(token), cache: 'no-store' }
   );
-  if (!res.ok) throw new Error(`Failed to fetch ${filePath}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(`Failed to fetch ${filePath} (${res.status}): ${(err as {message?: string}).message ?? JSON.stringify(err)}`);
+  }
   const data = await res.json();
   const content = JSON.parse(Buffer.from(data.content, 'base64').toString('utf-8'));
   return { content, sha: data.sha };
