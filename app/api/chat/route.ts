@@ -1,7 +1,7 @@
 import { KNOWLEDGE_BASE } from '@/lib/knowledge';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 
-const MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
+const MODEL = '@cf/meta/llama-3.1-8b-instruct';
 
 const SYSTEM_PROMPT = `당신은 팁스(TIPS) 창업사업화 및 해외마케팅 전담 AI 어시스턴트입니다.
 아래 제공된 공식 문서(관리기준, 통합관리지침, 시스템 가이드북)를 기반으로 정확하고 친절하게 답변하세요.
@@ -53,8 +53,7 @@ export async function POST(req: Request) {
 
     return Response.json({ message: result.response ?? '' });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    console.error('AI error:', msg);
-    return Response.json({ error: `[DEBUG] ${msg}` }, { status: 500 });
+    console.error('AI error:', error);
+    return Response.json({ error: 'AI 응답 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' }, { status: 500 });
   }
 }
