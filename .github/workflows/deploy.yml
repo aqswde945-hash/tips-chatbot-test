@@ -24,7 +24,7 @@ jobs:
       - name: Vectorize 인덱스 생성 (이미 있으면 무시)
         run: |
           set +e
-          OUTPUT=$(npx wrangler vectorize create tips-knowledge --dimensions=768 --metric=cosine 2>&1)
+          OUTPUT=$(npx wrangler vectorize create tips-knowledge --dimensions=1024 --metric=cosine 2>&1)
           EXIT_CODE=$?
           set -e
           echo "$OUTPUT"

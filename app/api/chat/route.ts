@@ -1,7 +1,7 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 const MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
-const EMBED_MODEL = '@cf/baai/bge-base-en-v1.5';
+const EMBED_MODEL = '@cf/baai/bge-m3';
 
 const SYSTEM_PROMPT_BASE = `당신은 팁스(TIPS) 창업사업화 및 해외마케팅 전담 AI 어시스턴트입니다.
 아래 제공된 참고 문서를 기반으로 정확하고 친절하게 답변하세요.

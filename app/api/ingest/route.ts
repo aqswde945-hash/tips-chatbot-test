@@ -2,7 +2,7 @@ import { KNOWLEDGE_BASE } from '@/lib/knowledge';
 import { chunkText } from '@/lib/chunker';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 
-const EMBED_MODEL = '@cf/baai/bge-base-en-v1.5';
+const EMBED_MODEL = '@cf/baai/bge-m3';
 
 export async function POST(req: Request) {
   const { password } = await req.json();
