@@ -166,14 +166,6 @@ export default function Home() {
                   💡 자주 묻는 질문(FAQ) 보기
                 </Link>
               )}
-              <a
-                href="https://doc-checker.pages.dev/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-green-200 rounded-xl text-sm text-green-700 hover:bg-green-50 hover:border-green-400 transition-colors shadow-sm"
-              >
-                🗂️ 사업비 증빙서류 사전 검토
-              </a>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-xl mx-auto">
               {exampleQuestions.map((q) => (
@@ -272,18 +264,10 @@ export default function Home() {
             전송
           </button>
         </form>
-        <div className="flex items-center justify-between mt-2">
+        <div className="flex items-center justify-center mt-2">
           <p className="text-xs text-gray-400">
             공식 문서 기반 AI 답변 · 중요 사항은 담당자에게 재확인하세요
           </p>
-          <a
-            href="https://doc-checker.pages.dev/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 rounded-lg text-xs text-green-700 hover:bg-green-100 hover:border-green-300 transition-colors flex-shrink-0"
-          >
-            🗂️ 증빙서류 검토
-          </a>
         </div>
       </div>
     </div>
