@@ -22,7 +22,17 @@ jobs:
         run: npm run cf:build
 
       - name: Vectorize 인덱스 생성 (이미 있으면 무시)
-        run: npx wrangler vectorize create tips-knowledge --dimensions=768 --metric=cosine || true
+        run: |
+          OUTPUT=$(npx wrangler vectorize create tips-knowledge --dimensions=768 --metric=cosine 2>&1)
+          EXIT_CODE=$?
+          echo "$OUTPUT"
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "$OUTPUT" | grep -qi "already exist" || exit $EXIT_CODE
+            echo "인덱스가 이미 존재합니다. 계속 진행합니다."
+          else
+            echo "인덱스 생성 완료. 전파 대기 중..."
+            sleep 10
+          fi
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
