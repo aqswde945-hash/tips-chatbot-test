@@ -9,6 +9,7 @@ function githubHeaders(token: string) {
     Authorization: `token ${token}`,
     Accept: 'application/vnd.github.v3+json',
     'Content-Type': 'application/json',
+    'User-Agent': 'tips-chatbot-admin',
   };
 }
 
