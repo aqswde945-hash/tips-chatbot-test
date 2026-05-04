@@ -49,20 +49,18 @@ export async function POST(req: Request) {
       headers: { Authorization: `Bearer ${upstashToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ data: latestUserMsg, topK: 10, includeMetadata: true }),
     });
-    const searchData = await searchRes.json() as { result: Array<{ score?: number; metadata?: { text?: string } }> };
+    const searchData = await searchRes.json() as { result: Array<{ metadata?: { text?: string } }> };
 
-    const relevantChunks = searchData.result.filter((m) => (m.score ?? 0) >= 0.5);
-
-    // 유사도 높은 문서 없으면 바로 거절
-    if (relevantChunks.length === 0) {
-      await env.CHAT_CACHE.put(cacheKey, NO_DOC_RESPONSE, { expirationTtl: 86400 });
-      return Response.json({ message: NO_DOC_RESPONSE });
-    }
-
-    const context = relevantChunks
+    const context = searchData.result
       .map((m) => m.metadata?.text ?? '')
       .filter(Boolean)
       .join('\n\n---\n\n');
+
+    // 관련 문서 없으면 바로 거절
+    if (!context) {
+      await env.CHAT_CACHE.put(cacheKey, NO_DOC_RESPONSE, { expirationTtl: 86400 });
+      return Response.json({ message: NO_DOC_RESPONSE });
+    }
 
     const cfMessages = [
       { role: 'system', content: SYSTEM_PROMPT },
