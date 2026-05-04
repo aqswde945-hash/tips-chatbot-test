@@ -10,10 +10,6 @@ binding = "ASSETS"
 [ai]
 binding = "AI"
 
-[[vectorize]]
-binding = "VECTORIZE"
-index_name = "tips-knowledge"
-
 [[kv_namespaces]]
 binding = "CHAT_CACHE"
 id = "eefc2135e3b04059b88c6952ddc8411c"

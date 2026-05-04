@@ -43,13 +43,19 @@ export async function POST(req: Request) {
     // 관련 문서 검색
     const queryEmbedding = await env.AI.run(EMBED_MODEL, { text: [latestUserMsg] });
 
-    const searchResults = await env.VECTORIZE.query(queryEmbedding.data[0], {
-      topK: 10,
-      returnMetadata: 'all',
-    });
+    const upstashUrl = process.env.UPSTASH_VECTOR_REST_URL;
+    const upstashToken = process.env.UPSTASH_VECTOR_REST_TOKEN;
+    if (!upstashUrl || !upstashToken) throw new Error('Upstash 환경변수가 설정되지 않았습니다.');
 
-    const context = searchResults.matches
-      .map((m: { metadata?: { text?: string } }) => m.metadata?.text ?? '')
+    const searchRes = await fetch(`${upstashUrl}/query`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${upstashToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ vector: queryEmbedding.data[0], topK: 10, includeMetadata: true }),
+    });
+    const searchData = await searchRes.json() as { result: Array<{ metadata?: { text?: string } }> };
+
+    const context = searchData.result
+      .map((m) => m.metadata?.text ?? '')
       .filter(Boolean)
       .join('\n\n---\n\n');
 
