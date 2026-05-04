@@ -36,7 +36,7 @@ async function updateFileOnGitHub(token: string, filePath: string, content: unkn
   if (!res.ok) {
     const err = await res.json();
     console.error('GitHub update error:', err);
-    throw new Error('GitHub 저장 실패');
+    throw new Error(`GitHub 저장 실패 (${res.status}): ${err.message ?? JSON.stringify(err)}`);
   }
 }
 
@@ -92,6 +92,7 @@ export async function POST(req: NextRequest) {
     return Response.json({ success: true });
   } catch (error) {
     console.error('Admin save error:', error);
-    return Response.json({ error: 'GitHub 저장에 실패했습니다.' }, { status: 500 });
+    const msg = error instanceof Error ? error.message : String(error);
+    return Response.json({ error: msg }, { status: 500 });
   }
 }
