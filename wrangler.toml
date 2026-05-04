@@ -9,3 +9,7 @@ binding = "ASSETS"
 
 [ai]
 binding = "AI"
+
+[[vectorize]]
+binding = "VECTORIZE"
+index_name = "tips-knowledge"
