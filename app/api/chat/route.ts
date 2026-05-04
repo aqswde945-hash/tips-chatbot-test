@@ -53,7 +53,8 @@ export async function POST(req: Request) {
 
     return Response.json({ message: result.response ?? '' });
   } catch (error) {
-    console.error('AI error:', error);
-    return Response.json({ error: 'AI 응답 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' }, { status: 500 });
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error('AI error:', msg);
+    return Response.json({ error: `[DEBUG] ${msg}` }, { status: 500 });
   }
 }
