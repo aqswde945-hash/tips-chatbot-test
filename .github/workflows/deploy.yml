@@ -23,8 +23,10 @@ jobs:
 
       - name: Vectorize 인덱스 생성 (이미 있으면 무시)
         run: |
+          set +e
           OUTPUT=$(npx wrangler vectorize create tips-knowledge --dimensions=768 --metric=cosine 2>&1)
           EXIT_CODE=$?
+          set -e
           echo "$OUTPUT"
           if [ $EXIT_CODE -ne 0 ]; then
             echo "$OUTPUT" | grep -qi "already exist" || exit $EXIT_CODE
