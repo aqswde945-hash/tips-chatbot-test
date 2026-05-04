@@ -1,7 +1,6 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 const MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
-const EMBED_MODEL = '@cf/baai/bge-m3';
 
 const SYSTEM_PROMPT_BASE = `당신은 팁스(TIPS) 창업사업화 및 해외마케팅 전담 AI 어시스턴트입니다.
 아래 제공된 참고 문서를 기반으로 정확하고 친절하게 답변하세요.
@@ -40,17 +39,15 @@ export async function POST(req: Request) {
       return Response.json({ message: cached });
     }
 
-    // 관련 문서 검색
-    const queryEmbedding = await env.AI.run(EMBED_MODEL, { text: [latestUserMsg] });
-
+    // Upstash로 관련 문서 검색 (임베딩은 Upstash 내부 처리)
     const upstashUrl = process.env.UPSTASH_VECTOR_REST_URL;
     const upstashToken = process.env.UPSTASH_VECTOR_REST_TOKEN;
     if (!upstashUrl || !upstashToken) throw new Error('Upstash 환경변수가 설정되지 않았습니다.');
 
-    const searchRes = await fetch(`${upstashUrl}/query`, {
+    const searchRes = await fetch(`${upstashUrl}/query-data`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${upstashToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ vector: queryEmbedding.data[0], topK: 10, includeMetadata: true }),
+      body: JSON.stringify({ data: latestUserMsg, topK: 10, includeMetadata: true }),
     });
     const searchData = await searchRes.json() as { result: Array<{ metadata?: { text?: string } }> };
 
