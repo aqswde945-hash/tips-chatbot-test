@@ -49,9 +49,9 @@ export async function POST(req: Request) {
       headers: { Authorization: `Bearer ${upstashToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ data: latestUserMsg, topK: 10, includeMetadata: true }),
     });
-    const searchData = await searchRes.json() as { result: Array<{ metadata?: { text?: string } }> };
+    const searchData = await searchRes.json() as { result?: Array<{ metadata?: { text?: string } }> };
 
-    const context = searchData.result
+    const context = (searchData.result ?? [])
       .map((m) => m.metadata?.text ?? '')
       .filter(Boolean)
       .join('\n\n---\n\n');
