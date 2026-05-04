@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     const chunks = chunkText(KNOWLEDGE_BASE);
 
     let inserted = 0;
-    const batchSize = 20;
+    const batchSize = 10;
 
     for (let i = 0; i < chunks.length; i += batchSize) {
       const batch = chunks.slice(i, i + batchSize);
