@@ -42,6 +42,8 @@ export default function AdminPage() {
   const [tab, setTab] = useState<Tab>('header');
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
+  const [ingesting, setIngesting] = useState(false);
+  const [ingestMsg, setIngestMsg] = useState('');
 
   const [newNoticeTitle, setNewNoticeTitle] = useState('');
   const [newNoticeContent, setNewNoticeContent] = useState('');
@@ -66,6 +68,28 @@ export default function AdminPage() {
     if (!password.trim()) return;
     setAuthed(true);
     setAuthError('');
+  };
+
+  const handleIngest = async () => {
+    setIngesting(true);
+    setIngestMsg('');
+    try {
+      const res = await fetch('/api/ingest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setIngestMsg(data.error || '지식베이스 구축 실패');
+      } else {
+        setIngestMsg(`✅ 완료! 총 ${data.totalChunks}개 청크가 저장되었습니다.`);
+      }
+    } catch {
+      setIngestMsg('네트워크 오류가 발생했습니다.');
+    } finally {
+      setIngesting(false);
+    }
   };
 
   const handleSave = async () => {
@@ -206,19 +230,33 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 px-4 py-4 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
+        <div className="max-w-2xl mx-auto flex items-center justify-between gap-2">
           <h1 className="text-base font-bold text-gray-800">관리자 페이지</h1>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="bg-blue-600 text-white px-5 py-2 rounded-xl text-sm font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-          >
-            {saving ? '저장 중...' : '저장'}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleIngest}
+              disabled={ingesting}
+              className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            >
+              {ingesting ? '구축 중...' : 'AI 지식베이스 재구축'}
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="bg-blue-600 text-white px-5 py-2 rounded-xl text-sm font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            >
+              {saving ? '저장 중...' : '저장'}
+            </button>
+          </div>
         </div>
         {saveMsg && (
           <div className="max-w-2xl mx-auto mt-2">
             <p className={`text-sm ${saveMsg.startsWith('✅') ? 'text-green-600' : 'text-red-500'}`}>{saveMsg}</p>
+          </div>
+        )}
+        {ingestMsg && (
+          <div className="max-w-2xl mx-auto mt-1">
+            <p className={`text-sm ${ingestMsg.startsWith('✅') ? 'text-green-600' : 'text-red-500'}`}>{ingestMsg}</p>
           </div>
         )}
       </header>
