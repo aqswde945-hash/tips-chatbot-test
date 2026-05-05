@@ -89,8 +89,17 @@ export async function POST(req: Request) {
 
     let message = '';
     try {
-      const result = await env.AI.run(MODEL, { messages: cfMessages, max_tokens: 2048 }) as { response?: string };
-      message = result.response ?? '';
+      const result = await env.AI.run(MODEL, { messages: cfMessages, max_tokens: 2048 }) as { response?: string; error?: unknown };
+      const resultErr = String(result.error ?? '');
+      if (result.error || !result.response) {
+        if (resultErr.includes('neurons') || resultErr.includes('4006') || !result.response) {
+          message = await callGroq(cfMessages);
+        } else {
+          throw new Error(resultErr || 'Workers AI 빈 응답');
+        }
+      } else {
+        message = result.response;
+      }
     } catch (aiError) {
       const aiMsg = aiError instanceof Error ? aiError.message : String(aiError);
       if (aiMsg.includes('neurons') || aiMsg.includes('4006')) {
