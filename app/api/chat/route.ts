@@ -19,6 +19,20 @@ const SYSTEM_PROMPT = `당신은 팁스(TIPS) 창업사업화 및 해외마케�
 3. PMS·시스템 접속 관련 질문: "① https://www.k-startup.go.kr/ 접속 ② 상단 메뉴 '사업신청관리' 클릭 ③ 로그인 후 이용 / 기술적 문제: 1357 콜센터"
 4. 시스템 오류·접속 장애: 1357 콜센터 안내`;
 
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
+
+async function callGroq(messages: { role: string; content: string }[]): Promise<string> {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) throw new Error('GROQ_API_KEY 없음');
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: GROQ_MODEL, messages, max_tokens: 2048 }),
+  });
+  const data = await res.json() as { choices?: { message?: { content?: string } }[] };
+  return data.choices?.[0]?.message?.content ?? '';
+}
+
 export async function POST(req: Request) {
   try {
     const { messages } = await req.json();
@@ -71,8 +85,18 @@ export async function POST(req: Request) {
       })),
     ];
 
-    const result = await env.AI.run(MODEL, { messages: cfMessages, max_tokens: 2048 }) as { response?: string };
-    const message = result.response ?? '';
+    let message = '';
+    try {
+      const result = await env.AI.run(MODEL, { messages: cfMessages, max_tokens: 2048 }) as { response?: string };
+      message = result.response ?? '';
+    } catch (aiError) {
+      const aiMsg = aiError instanceof Error ? aiError.message : String(aiError);
+      if (aiMsg.includes('neurons') || aiMsg.includes('4006')) {
+        message = await callGroq(cfMessages);
+      } else {
+        throw aiError;
+      }
+    }
 
     await env.CHAT_CACHE.put(cacheKey, message, { expirationTtl: 86400 });
     return Response.json({ message });
