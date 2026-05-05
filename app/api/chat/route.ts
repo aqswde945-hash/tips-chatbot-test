@@ -41,6 +41,29 @@ async function callGroq(messages: { role: string; content: string }[]): Promise<
   return data.choices?.[0]?.message?.content ?? '';
 }
 
+function normalizeQuery(text: string): string {
+  return text
+    .replace(/어케/g, '어떻게')
+    .replace(/왜케/g, '왜이렇게')
+    .replace(/이케/g, '이렇게')
+    .replace(/그케/g, '그렇게')
+    .replace(/뭔데/g, '무엇인가')
+    .replace(/뭐야/g, '무엇인가')
+    .replace(/뭐냐/g, '무엇인가')
+    .replace(/뭐임/g, '무엇인가')
+    .replace(/뭔지/g, '무엇인지')
+    .replace(/뭔가/g, '무엇인가')
+    .replace(/얼마야/g, '얼마인가')
+    .replace(/얼마임/g, '얼마인가')
+    .replace(/되나요\?|되나요/g, '가능한가요')
+    .replace(/안돼/g, '안됩니다')
+    .replace(/안됨/g, '안됩니다')
+    .replace(/됨/g, '됩니다')
+    .replace(/해줘/g, '해주세요')
+    .replace(/알려줘/g, '알려주세요')
+    .replace(/보여줘/g, '보여주세요');
+}
+
 export async function POST(req: Request) {
   try {
     const { messages } = await req.json();
@@ -53,7 +76,8 @@ export async function POST(req: Request) {
     const { env } = await getCloudflareContext({ async: true }) as { env: any };
 
     const latestUserMsg = [...messages].reverse().find((m: { role: string }) => m.role === 'user')?.content ?? '';
-    const cacheKey = latestUserMsg.trim().toLowerCase().slice(0, 512);
+    const normalizedMsg = normalizeQuery(latestUserMsg);
+    const cacheKey = normalizedMsg.trim().toLowerCase().slice(0, 512);
 
     // KV 캐시 확인
     const cached = await env.CHAT_CACHE.get(cacheKey);
@@ -61,7 +85,7 @@ export async function POST(req: Request) {
       return Response.json({ message: cached });
     }
 
-    // Upstash로 관련 문서 검색
+    // Upstash로 관련 문서 검색 (정규화된 쿼리 사용)
     const upstashUrl = process.env.UPSTASH_VECTOR_REST_URL;
     const upstashToken = process.env.UPSTASH_VECTOR_REST_TOKEN;
     if (!upstashUrl || !upstashToken) throw new Error('Upstash 환경변수가 설정되지 않았습니다.');
@@ -69,7 +93,7 @@ export async function POST(req: Request) {
     const searchRes = await fetch(`${upstashUrl}/query-data`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${upstashToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ data: latestUserMsg, topK: 10, includeMetadata: true }),
+      body: JSON.stringify({ data: normalizedMsg, topK: 10, includeMetadata: true }),
     });
     const searchData = await searchRes.json() as { result?: Array<{ metadata?: { text?: string } }> };
 
