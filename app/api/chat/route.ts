@@ -37,8 +37,14 @@ async function callGroq(messages: { role: string; content: string }[]): Promise<
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ model: GROQ_MODEL, messages, max_tokens: 2048 }),
   });
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Groq 오류 (${res.status}): ${errText}`);
+  }
   const data = await res.json() as { choices?: { message?: { content?: string } }[] };
-  return data.choices?.[0]?.message?.content ?? '';
+  const content = data.choices?.[0]?.message?.content ?? '';
+  if (!content) throw new Error('Groq 빈 응답');
+  return content;
 }
 
 function normalizeQuery(text: string): string {
